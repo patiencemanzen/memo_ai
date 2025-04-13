@@ -32,7 +32,7 @@ class OrchestrationAgent:
         self.image_preview_path = image_preview_path
         self.metadata = metadata or {}
 
-    def get_orchestration_plan(self) -> Dict:
+    def analyze(self) -> Dict:
         """
         Generate the orchestration plan for the image enhancement process.
 

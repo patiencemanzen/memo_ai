@@ -1,13 +1,21 @@
 import os
 import uuid
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.parsers import MultiPartParser
 from django.conf import settings
 from .serializers import UploadImageSerializer
 from .mongo_models import UploadedImage
 
+from orchestrator.agent import OrchestrationAgent
+from orchestrator.controller import run_pipeline
+from orchestrator.utils import generate_image_id, generate_metadata_from_image
+
 class UploadMultipleImagesView(APIView):
+    parser_classes = [MultiPartParser]
+
     def post(self, request):
         images = request.FILES.getlist('images')
 
@@ -18,29 +26,49 @@ class UploadMultipleImagesView(APIView):
 
         for image in images:
             serializer = UploadImageSerializer(data={'image': image})
-            
+
             if serializer.is_valid():
-                # Generate a unique filename
+                # --- Step 1: Save original image ---
                 ext = os.path.splitext(image.name)[1]
                 filename = f"{uuid.uuid4().hex}{ext}"
                 save_path = os.path.join(settings.MEDIA_ROOT, 'originals', filename)
-
-                # Ensure directory exists
                 os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
-                # Save the file
                 with open(save_path, 'wb+') as f:
                     for chunk in image.chunks():
                         f.write(chunk)
 
-                # Save path to MongoDB
-                UploadedImage(image_path=f'originals/{filename}').save()
+                relative_path = f'originals/{filename}'
 
-                uploaded.append({'filename': filename})
+                # --- Step 2: Generate metadata ---
+                metadata = generate_metadata_from_image(save_path)
+
+                # --- Step 3: Orchestrator Agent generates plan ---
+                agent = OrchestrationAgent(image_preview_path=save_path, metadata=metadata)
+                plan = agent.analyze()
+
+                # --- Step 4: Run image pipeline based on plan ---
+                processed_path, log = run_pipeline(save_path, plan, generate_image_id())
+
+                # --- Step 5: Save results to MongoDB ---
+                UploadedImage(
+                    original_image_path=relative_path,
+                    processed_image_path=processed_path.replace(settings.MEDIA_ROOT, '').lstrip("/\\"),
+                    orchestration_plan=plan,
+                    orchestration_log=log,
+                ).save()
+
+                # --- Step 6: Prepare response ---
+                uploaded.append({
+                    'original_image_path': filename,
+                    'processed_image_path': processed_path.replace(settings.MEDIA_ROOT, '').lstrip("/\\"),
+                    'orchestration_plan': plan,
+                    'orchestration_log': log,
+                })
             else:
                 return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({
-            "message": "Images uploaded successfully.",
+            "message": "Images processed successfully.",
             "uploaded": uploaded
         }, status=status.HTTP_201_CREATED)
