@@ -11,7 +11,7 @@ Memo AI is an agentic AI system developed in Python to restore, preserve, and en
 - **Noise Reduction**: Reduces noise and artifacts in scanned or compressed photos.
 - **Face Enhancement**: Restores facial details in blurry or old portraits.
 
-## 🔧 How AI Helps with Image Restoration
+## 🧠 How Memo Helps with Image Restoration
 
 AI models are used to:
 
@@ -20,33 +20,6 @@ AI models are used to:
 - Fill in missing or torn parts of images through inpainting.
 - Colorize black-and-white images while preserving realism and context.
 - Reduce noise and artifacts for cleaner, sharper images.
-
-## 🧠 AI Techniques Used
-
-### 1. **Super-Resolution**
-
-- **Tools**: ESRGAN (Enhanced Super-Resolution GAN), Real-ESRGAN
-- **Purpose**: Increase resolution and clarity of low-quality images.
-
-### 2. **Deblurring**
-
-- **Models**: DeblurGAN, DeepDeblur
-- **Purpose**: Remove motion blur and out-of-focus blur.
-
-### 3. **Image Inpainting**
-
-- **Tools**: LaMa (Large Mask Inpainting), Adobe Firefly, OpenCV + DNN
-- **Purpose**: Fill in missing or torn parts of images.
-
-### 4. **Colorization**
-
-- **Tool**: DeOldify
-- **Purpose**: Add realistic colors to black-and-white images. Can be fine-tuned for context preservation.
-
-### 5. **Face Enhancement**
-
-- **Tool**: GFPGAN (by Tencent)
-- **Purpose**: Restore facial details, even in blurry or degraded portraits.
 
 ## 🔐 Ethical & Contextual Considerations
 
@@ -68,9 +41,9 @@ When working with sensitive historical material, such as images from the Rwanda 
 Decides: ["deblur", "upscale", "enhance_faces"]
                 ↓
         Triggers Python Workers
-┌──────────────┬──────────────┬──────────────┐
-│  DeblurGAN   │  Real-ESRGAN │   GFPGAN     │
-└──────────────┴──────────────┴──────────────┘
+┌──────────────┬────────────────────┬──────────────┐
+│  FACEFIX     │  DEBLUR & ENHANCE  │   COLORIZE   │
+└──────────────┴────────────────────┴──────────────┘
                 ↓
     Combines Results + Logs + Metadata
                 ↓
