@@ -1,13 +1,15 @@
-from typing import Dict
-from openai import OpenAI
+import json
 import logging
-import os
-from .models import OrchestrationPlan
+from typing import Dict
+
+from .LlmClient import Client as LangClient
+from .models import OrchestrationPlan, RestorationStep
 from .prompt_builder import build_orchestration_prompt
 
 # --------------------------------------------------------------
 # Initialize logging
 # --------------------------------------------------------------
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
@@ -16,14 +18,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # --------------------------------------------------------------
-# Initialize OpenAI client
-# --------------------------------------------------------------
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-model = "gpt-4o-mini"
-
-# --------------------------------------------------------------
 # Image Orchestration Agent
 # --------------------------------------------------------------
+
 class OrchestrationAgent:
     def __init__(self, image_preview_path: str, metadata: dict = None):
         """
@@ -37,39 +34,44 @@ class OrchestrationAgent:
         Generate the orchestration plan for the image enhancement process.
 
         Returns:
-            Dict: The orchestration plan or an error message.
+            Dict: The orchestration plan or error message.
         """
         try:
             return self._construct_orchestration_plan()
         except Exception as e:
-            logger.error(f"Error generating orchestration plan: {e}")
-            return {"error": str(e)}
+            logger.error(f"Orchestration Error: {e}")
+            raise ValueError(f"Orchestration Error: {e}")
 
     def _construct_orchestration_plan(self) -> Dict:
         """
-        Construct the orchestration plan by interacting with the LLM API.
+        Construct the orchestration plan by interacting with Gemini API.
 
         Returns:
             Dict: The parsed orchestration plan.
         """
-        metadata_str = self.metadata if self.metadata else "None"
+        metadata_str = str(self.metadata or "None")
 
-        prompt = build_orchestration_prompt(self.image_preview_path, metadata_str)
+        prompt = build_orchestration_prompt(
+            image_preview_path=self.image_preview_path,
+            metadata=metadata_str,
+        )
+
+        logger.info("Sending request to Gemini API for orchestration plan.")
 
         try:
-            logger.info("Sending request to OpenAI API for orchestration plan.")
-            completion = client.beta.chat.completions.parse(
-                model=model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": prompt,
-                    }
-                ],
-                response_format=OrchestrationPlan,
+            client = LangClient()
+
+            parsed_json = client.generate_response(
+                prompt=prompt,
+                file_path=self.image_preview_path,
             )
-            logger.info("Successfully received response from OpenAI API.")
-            return completion.choices[0].message.parsed
+
+            if not isinstance(parsed_json, dict):
+                logger.error("Parsed JSON is not a dictionary.")
+                raise ValueError("Parsed JSON is not a dictionary.")
+
+            plan = OrchestrationPlan(**parsed_json)
+            return plan.model_dump()
         except Exception as e:
-            logger.error(f"Error constructing orchestration plan: {e}")
-            raise
+            logger.error(f"Failed to parse orchestration response: {e}")
+            raise ValueError(f"Failed to parse orchestration response: {e}")

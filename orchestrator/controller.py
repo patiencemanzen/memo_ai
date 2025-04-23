@@ -3,6 +3,9 @@ from .utils import save_agent_log
 from .models import OrchestrationPlan
 
 def run_pipeline(image_path: str, plan: OrchestrationPlan, image_id: str):
+    if isinstance(plan, dict):
+        plan = OrchestrationPlan(**plan)
+
     log = {
         "image_id": image_id,
         "original": image_path,
@@ -14,6 +17,7 @@ def run_pipeline(image_path: str, plan: OrchestrationPlan, image_id: str):
 
     for step in plan.steps:
         worker = WORKERS.get(step.name)
+        
         if worker:
             current_path = worker(current_path)
             log["steps"].append({"name": step.name, "status": "done"})

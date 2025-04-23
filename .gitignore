@@ -35,3 +35,6 @@ htmlcov/
 # OpenAI or secrets
 openai_key.txt
 *.env
+
+# Generated Logs
+api/orchestrator/logs/*.json

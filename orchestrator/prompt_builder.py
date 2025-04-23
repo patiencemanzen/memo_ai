@@ -33,11 +33,11 @@ Based on the input image and its metadata, analyze the visual quality and genera
     {{"name": "fix_faces", "reason": "Faces are present but unclear"}}
   ],
   "explanation": "The image is blurry, grayscale, and contains faces.",
-  "historian_review_required": false
+  "historian_review_required": true
 }}
 ```
 
-### Input:
+### More Input:
 Image path: {image_preview_path}
 Metadata: {metadata}
 """ 
